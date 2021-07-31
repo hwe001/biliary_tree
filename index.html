@@ -1,0 +1,509 @@
+<!doctype html>
+<html>
+<head>
+	<title>Liver subjects</title>
+	<script src="Three.js"></script>
+	<script src="OrbitControls.js"></script>
+	<script src="jquery-3.2.0.min.js"></script>
+	<script type="text/javascript">
+		//var projector;
+		var mouse = new THREE.Vector2(0, 0);
+		var raycaster = new THREE.Raycaster();
+		var jloader = new THREE.JSONLoader();
+		var controls;
+		//var pos = [];
+		var pos = {};
+		var surface_mesh;
+		var camera;
+		var renderer;
+		//var unselected_material = new THREE.MeshPhongMaterial({color: 0xAAAAAA, side: THREE.DoubleSide});
+		//var selected_material = new THREE.MeshPhongMaterial({color: 0x22AA00, side: THREE.DoubleSide});
+		var unselected_portal = new THREE.MeshPhongMaterial({color: "rgb(170,150,100)", side: THREE.DoubleSide});
+		var selected_portal = new THREE.MeshPhongMaterial({color: "rgb(150,100,70)", side: THREE.DoubleSide});
+		var unselected_hepatic_vein = new THREE.MeshPhongMaterial({color: "rgb(100,160,240)", side: THREE.DoubleSide});
+		var selected_hepatic_vein = new THREE.MeshPhongMaterial({color: "rgb(40,110,210)", side: THREE.DoubleSide});
+		var unselected_hepatic_artery = new THREE.MeshPhongMaterial({color: "rgb(240,80,80)", side: THREE.DoubleSide});
+		var selected_hepatic_artery = new THREE.MeshPhongMaterial({color: "rgb(190,25,25)", side: THREE.DoubleSide});
+		var unselected_bile = new THREE.MeshPhongMaterial({color: "rgb(160,240,180)", side: THREE.DoubleSide});
+		var selected_bile = new THREE.MeshPhongMaterial({color: "rgb(70,130,90)", side: THREE.DoubleSide});
+		var surface_material = new THREE.MeshPhongMaterial({color: "rgb(190,100,90)", opacity: 0.3, transparent: true, side: THREE.BackSide});
+		var width = window.innerWidth - 316;
+		var height = window.innerHeight - 76;
+		var subject = "S01";
+		var reset_camera = true;
+		
+		// portal - brown
+		// hepatic vein - blue
+		// hepatic artery - red
+		// bile - green
+		
+		//var liver_files = ['S01_bile', 'S01_hepatic', 'S01_portal'];
+		var liver_files = {S01: ['S01_bile', 'S01_hepatic', 'S01_portal'], S02: ['S02_bile', 'S02_hepatic', 'S02_portal']};
+		
+		function draw3D() {
+			function setup() {
+				//var jloader = new THREE.JSONLoader();
+				
+				//var files = ['left_femur.json', 'left_fibula.json', 'left_illium.json', 'left_ischium.json', 'left_metatarsal_bone.json', 'left_patella.json', 'left_phalanges.json', 'left_pubis.json', 'left_tarsal_bone.json', 'left_tibia.json', 'right_femur.json', 'right_fibula.json', 'right_illium.json', 'right_ischium.json', 'right_metatarsal_bone.json', 'right_patella.json', 'right_phalanges.json', 'right_pubis.json', 'right_tarsal_bone.json', 'right_tibia.json', 'vertebrae_coccygeal.json', 'vertebrae_lumbar.json', 'vertebrae_sacral.json', 'vertebrae_thoracic.json'];
+				
+				//var files = ['left_femur', 'left_fibula', 'left_illium', 'left_ischium', 'left_metatarsal_bone', 'left_patella', 'left_phalanges', 'left_pubis', 'left_tarsal_bone', 'left_tibia', 'right_femur', 'right_fibula', 'right_illium', 'right_ischium', 'right_metatarsal_bone', 'right_patella', 'right_phalanges', 'right_pubis', 'right_tarsal_bone', 'right_tibia', 'vertebrae_coccygeal', 'vertebrae_lumbar', 'vertebrae_sacral', 'vertebrae_thoracic'];
+				
+				/*
+				for (var i in files) {
+					jloader.load('./models/' + files[i] + '.json', function (geometry) {
+						//var mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial());
+						var mesh = new THREE.Mesh(geometry, unselected_material);
+						mesh.position.y = -200; //-110;
+						mesh.position.x = -190; //-190;
+						mesh.position.z = -1400; //-1400;
+						//mesh.scale.set(100,100,100);
+						mesh.ID = 0;
+						//pos.push(mesh);
+						pos[files[i]] = mesh;
+						scene.add(mesh);
+					});
+					
+					$('#bones-list').append('<input type="checkbox" class="bone-item" value="' + files[i] + '" />' + files[i] + '<br/>');
+				}
+				*/
+				
+				//loadModelsRecursive(0);
+				
+				jloader.load('./models/' + subject + '_portal.json', function (geometry) {
+					var mesh = new THREE.Mesh(geometry, unselected_portal);
+					mesh.ID = 1;
+					mesh.name = "portal";
+					pos["portal"] = mesh;
+					scene.add(mesh);
+					$('#items-list').append('<input type="checkbox" class="item" value="portal" />portal<br/>');
+				});
+				
+				jloader.load('./models/' + subject + '_hepatic_vein.json', function (geometry) {
+					var mesh = new THREE.Mesh(geometry, unselected_hepatic_vein);
+					mesh.ID = 1;
+					mesh.name = "hepatic_vein";
+					pos["hepatic_vein"] = mesh;
+					scene.add(mesh);
+					$('#items-list').append('<input type="checkbox" class="item" value="hepatic_vein" />hepatic_vein<br/>');
+				});
+				
+				jloader.load('./models/' + subject + '_hepatic_artery.json', function (geometry) {
+					var mesh = new THREE.Mesh(geometry, unselected_hepatic_artery);
+					mesh.ID = 1;
+					mesh.name = "hepatic_artery";
+					pos["hepatic_artery"] = mesh;
+					scene.add(mesh);
+					$('#items-list').append('<input type="checkbox" class="item" value="hepatic_artery" />hepatic_artery<br/>');
+				},
+				function () {},
+				function () {
+					console.log("This subject lacks of hepatic artery.");
+				});
+				
+				jloader.load('./models/' + subject + '_bile.json', function (geometry) {
+					var mesh = new THREE.Mesh(geometry, unselected_bile);
+					mesh.ID = 1;
+					mesh.name = "bile";
+					pos["bile"] = mesh;
+					scene.add(mesh);
+					$('#items-list').append('<input type="checkbox" class="item" value="bile" />bile<br/>');
+				});
+				
+				//$('.item').change(function() {
+				$(document).on('change', '.item', function() {
+					var name = $(this).attr('value');
+					if ($(this).is(':checked')) {
+						pos[name].visible = false;
+					}
+					else {
+						pos[name].visible = true;
+					}
+				});
+				
+				//$('.all-items').change(function() {
+				$(document).on('change', '.all-items', function() {
+					if ($(this).is(':checked')) {
+						$('.item').prop('checked', true);
+						for (var key in pos) pos[key].visible = false;
+					}
+					else {
+						$('.item').prop('checked', false);
+						for (var key in pos) pos[key].visible = true;
+					}
+				});
+				
+				jloader.load('./models/' + subject + '_surface.json', function (geometry) {
+					//var mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial());
+					var mesh = new THREE.Mesh(geometry, surface_material);
+//					mesh.position.y = -200; //-110;
+//					mesh.position.x = -190; //-190;
+//					mesh.position.z = -1400; //-1400;
+					//mesh.scale.set(100,100,100);
+					mesh.ID = 0;
+					mesh.name = "surface";
+					surface_mesh = mesh;
+					//pos.push(mesh);
+					scene.add(mesh);
+					
+					var box = new THREE.Box3().setFromObject(surface_mesh);
+					//var center = new THREE.Vector3((box.max.x - box.min.x) / 2, (box.max.y - box.min.y) / 2, (box.max.z - box.min.z) / 2);
+					var center = new THREE.Vector3(box.min.x + ((box.max.x - box.min.x) / 2), box.min.y + ((box.max.y - box.min.y) / 2), box.min.z + ((box.max.z - box.min.z) / 2));
+					console.log(box);
+					console.log(center);
+					
+					if (reset_camera) {
+						//camera.position.set(center.x + box.min.x, center.y + box.min.y, center.z + box.min.z);
+						//camera.position.set(center.x, center.y, center.z);
+						camera.position.set(140, -70, 180);
+						controls.target.set(center.x, center.y, center.z);
+						controls.update();
+					}
+				});
+			}
+			
+			function animate() {
+				requestAnimationFrame(animate);
+				//pyramid.rotateY(Math.PI / 180);
+				controls.update();
+				renderer.render(scene, camera);
+				//updateControls();
+			}
+			
+			function updateControls() {
+				//controls.update();
+				
+//				var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+				//projector.unprojectVector(vector, camera);
+//				vector.unproject(camera);
+//				var ray = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+//				var hits = ray.intersectObjects(pos);
+
+//				raycaster.setFromCamera(mouse, camera);
+//				var hits = raycaster.intersectObjects(pos);
+//				console.log(hits.length);
+			}
+			
+			function loadModelsRecursive(index) {
+				if (index < liver_files[subject].length) {
+					jloader.load('./models/' + liver_files[subject][index] + '.json', function (geometry) {
+						//var mesh = new THREE.Mesh(geometry, new THREE.MeshNormalMaterial());
+						var mesh = new THREE.Mesh(geometry, unselected_material);
+//						mesh.position.y = -200; //-110;
+//						mesh.position.x = -190; //-190;
+//						mesh.position.z = -1400; //-1400;
+						//mesh.scale.set(100,100,100);
+						mesh.ID = index + 1;
+						mesh.name = liver_files[subject][index];
+						//pos.push(mesh);
+						pos[liver_files[subject][index]] = mesh;
+						scene.add(mesh);
+						
+						$('#items-list').append('<input type="checkbox" class="item" value="' + liver_files[subject][index] + '" />' + liver_files[subject][index] + '<br/>');
+						loadModelsRecursive(index + 1);
+					});
+				}
+				else {
+					$('.item').change(function() {
+						var name = $(this).attr('value');
+						if ($(this).is(':checked')) {
+							pos[name].visible = false;
+						}
+						else {
+							pos[name].visible = true;
+						}
+					});
+					
+					$('.all-items').change(function() {
+						if ($(this).is(':checked')) {
+							$('.item').prop('checked', true);
+							for (var key in pos) pos[key].visible = false;
+						}
+						else {
+							$('.item').prop('checked', false);
+							for (var key in pos) pos[key].visible = true;
+						}
+					});
+				}
+			}
+			
+			var scene = new THREE.Scene();
+			
+			//var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+			//var camera = new THREE.PerspectiveCamera(45, 1024 / 500, 0.1, 100);
+			//camera = new THREE.PerspectiveCamera(45, 1000 / 800, 0.1, 10000);
+			camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+			//camera = new THREE.PerspectiveCamera(45, 1024 / 500, 0.1, 10000);
+			//camera.position.z = 500;
+			
+			//controls = new THREE.OrbitControls(camera, span);
+			//controls.addEventListener('change', updateControls);
+			
+			var ambientLight = new THREE.AmbientLight(0x555555);
+			scene.add(ambientLight);
+			
+			var directionalLight = new THREE.DirectionalLight(0xe0e0e0);
+			directionalLight.position.set(5, 2, 5).normalize();
+			scene.add(directionalLight);
+			
+			renderer = new THREE.WebGLRenderer();
+			// renderer.setSize(1000, 800);
+			renderer.setSize(width, height);
+			renderer.setClearColor(0x000000, 1);
+			
+			var span = document.getElementById("shapecanvas");
+			span.appendChild(renderer.domElement);
+			
+			controls = new THREE.OrbitControls(camera, renderer.domElement);
+//			controls = new THREE.TrackballControls(camera, renderer.domElement);
+//			controls.rotateSpeed = 10.0;
+//			controls.panSpeed = 1.6;
+//			controls.staticMoving = true;
+			//controls.addEventListener('change', updateControls);
+			
+			//projector = new THREE.Projector();
+			span.addEventListener('mousemove', onDocumentMouseMove, false);
+			span.addEventListener('mousedown', onDocumentMouseDown, false);
+			
+			setup();
+			animate();
+
+			//camera.position.set(1139.5442, 192.4575, 1073.1672);
+//			camera.position.set(1840.0680, 193.1493, 1125.8836);
+//			camera.rotation.set(-0.0131, 1.4957, 0.0131);
+//			controls.target.set(-241.2342, 191.0939, 969.2597);
+//			controls.update();
+			
+			$('.surface-item').change(function() {
+				if ($(this).is(':checked')) {
+					surface_mesh.visible = false;
+				}
+				else {
+					surface_mesh.visible = true;
+				}
+			});
+			
+			$(document).on('input change', '#surface-slider', function() {
+//			$('#skin-slider').change(function() {
+				surface_material.opacity = $(this).val();
+			});
+			
+			$('#subject-select').change(function() {
+				//for (var i = 0; i < liver_files[subject].length; i++) {
+				//	scene.remove(scene.getObjectByName(liver_files[subject][i]));
+				//}
+				scene.remove(scene.getObjectByName("portal"));
+				scene.remove(scene.getObjectByName("hepatic_vein"));
+				scene.remove(scene.getObjectByName("hepatic_artery"));
+				scene.remove(scene.getObjectByName("bile"));
+				
+				scene.remove(scene.getObjectByName("surface"));
+				pos = {};
+				$('#items-list').empty();
+				$('#item-selected').html('&nbsp;');
+				$('.surface-item').prop('checked', false);
+				$('.all-items').prop('checked', false);
+				subject = $(this).val();
+				reset_camera = false;
+				
+				setup();
+			});
+		}
+		
+		function onDocumentMouseMove(event) {
+			var offset = $('#shapecanvas canvas').offset();
+			mouse.x = ((event.pageX - offset.left) / width) * 2 - 1;
+			mouse.y = - ((event.pageY - offset.top) / height) * 2 + 1;
+		
+			//mouse.x = (event.clientX / 1000) * 2 - 1;
+			//mouse.y = - (event.clientY / 800) * 2 + 1;
+//			mouse.x = (event.clientX / width) * 2 - 1;
+//			mouse.y = - (event.clientY / height) * 2 + 1;
+
+			//console.log(camera.toJSON());
+//			console.log(camera.position); //998.2184673968919, -150.40895832481505, -381.5343680428283
+//			console.log(camera.rotation); //1.328399231227039, 1.4089451656331065, -1.325315941944499
+//			console.log(controls.target);
+			//console.log(camera.quaternion); //0.7185976162338016, 0.05655485706129896, 0.6909859953980005, -0.054381777399490565
+			//console.log(camera.getWorldDirection()); //-0.9869306709435421, 0.1564344646131397, -0.03867980712135586
+		}
+		
+		function onDocumentMouseDown(event) {
+			var offset = $('#shapecanvas canvas').offset();
+			mouse.x = ((event.pageX - offset.left) / width) * 2 - 1;
+			mouse.y = - ((event.pageY - offset.top) / height) * 2 + 1;
+			
+			//mouse.clicked = true;
+			//mouse.x = (event.clientX / 1000) * 2 - 1;
+			//mouse.y = - (event.clientY / 800) * 2 + 1;
+//			mouse.x = (event.clientX / width) * 2 - 1;
+//			mouse.y = - (event.clientY / height) * 2 + 1;
+			
+			raycaster.setFromCamera(mouse, camera);
+			//var hits = raycaster.intersectObjects(pos);
+			var models = $.map(pos, function(value, key) { return value });
+			var hits = raycaster.intersectObjects(models);
+			//console.log(hits);
+			
+			//for (var i = 0; i < pos.length; i++) pos[i].material = unselected_material;
+			//for (var key in pos) pos[key].material = unselected_material;
+			if ("portal" in pos) pos["portal"].material = unselected_portal;
+			if ("hepatic_vein" in pos) pos["hepatic_vein"].material = unselected_hepatic_vein;
+			if ("hepatic_artery" in pos) pos["hepatic_artery"].material = unselected_hepatic_artery;
+			if ("bile" in pos) pos["bile"].material = unselected_bile;
+			
+			$('#item-selected').html('&nbsp;');
+			
+			if (hits.length > 0) {
+				var selected = hits[0].object;
+				//selected.material.color.setHex(0x00ff00);
+				//selected.material.wireframe = true;
+				switch (selected.name) {
+					case "portal":
+						selected.material = selected_portal;
+						break;
+					case "hepatic_vein":
+						selected.material = selected_hepatic_vein;
+						break;
+					case "hepatic_artery":
+						selected.material = selected_hepatic_artery;
+						break;
+					case "bile":
+						selected.material = selected_bile;
+						break;
+				}
+				//selected.material = selected_material;
+				
+				//$('#item-selected').html(liver_files[subject][selected.ID]);
+				$('#item-selected').html(selected.name);
+			}
+		}
+		
+		// Function to execute when the window changes its size
+		window.addEventListener('resize', function() {
+			width = window.innerWidth - 316;
+			height = window.innerHeight - 76;
+			camera.aspect = width / height;
+			camera.updateProjectionMatrix();
+			renderer.setSize(width, height);
+		}, false);
+	</script>
+	
+	<style>
+		html {
+			overflow: hidden;
+		}
+		
+		body {
+			background-color: black;
+		}
+		
+		#title {
+			height: 60px;
+			text-align: center;
+			font-size: 3em;
+			font-family: impact;
+			color: white;
+		}
+		
+		#content {
+			text-align: center;
+		}
+		
+		#viewer {
+			float: left;
+		}
+		
+		#shapecanvas {
+			border: none;
+		}
+		
+		#controls {
+			float: left;
+			width: 290px;
+			margin: 5px;
+			color: white;
+			font-family: impact;
+		}
+		
+		#subject-select {
+			width: 100%;
+			background: white;
+			border: none;
+			font-family: impact;
+			font-size: 16px;
+		}
+		
+		#all-items-container {
+			text-align: left;
+			border: 1px solid white;
+			border-bottom: none;
+			background: white;
+			color: black;
+		}
+		
+		#items-list {
+			height: 100px;
+			text-align: left;
+			border: 1px solid white;
+			overflow-y: scroll;
+		}
+		
+		#item-selected {
+			background: rgba(0,255,0,0.3);
+		}
+		
+		#surface-slider {
+			width: 290px;
+		}
+	</style>
+	
+	</head>
+	<!-- <body onload="draw2D(); draw3D();"> -->
+	<body onload="draw3D();">
+		<!-- <canvas id="shapecanvas" class="front" width="500" height="500"></canvas> -->
+		<div id="title">
+			<span>Liver subjects</span>
+		</div>
+		<div id="content">
+			<div id="viewer">
+				<!-- <span id="shapecanvas" style="border: none;" width="1000" height="800"></span> -->
+				<span id="shapecanvas"></span>
+			</div>
+			<div id="controls">
+				<span>CONTROLS</span><br/>
+				<br/>
+				<select id="subject-select">
+					<option value="S01">Subject 1</option>
+					<option value="S02">Subject 2</option>
+					<option value="S03">Subject 3</option>
+					<option value="S04">Subject 4</option>
+					<option value="S05">Subject 5</option>
+					<option value="S06">Subject 6</option>
+					<option value="S07">Subject 7</option>
+					<option value="S08">Subject 8</option>
+					<option value="S09">Subject 9</option>
+					<option value="S10">Subject 10</option>
+					<option value="S11">Subject 11</option>
+					<option value="S12">Subject 12</option>
+					<option value="S13">Subject 13</option>
+					<option value="S14">Subject 14</option>
+					<option value="S15">Subject 15</option>
+				</select><br/>
+				<br/>
+				<span>Check to hide / Uncheck to show</span>
+				<div id="all-items-container">
+					<input type="checkbox" class="all-items" value="all_items" />All elements<br/>
+				</div>
+				<div id="items-list"></div>
+				<br/>
+				<span>Element selected:</span><br/>
+				<div id="item-selected">&nbsp;</div>
+				<br/>
+				<input type="checkbox" class="surface-item" value="surface" />Hide surface<br/>
+				<br/>
+				<span>Surface opacity:</span><br/>
+				<input id="surface-slider" type="range" value="0.3" min="0" max="1" step="0.05" />
+			</div>
+		</div>
+	</body>
+</html>
